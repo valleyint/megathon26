@@ -1,7 +1,14 @@
 """Interactive demo CLI for Stage 1 Category Retrieval."""
 
+import sys
 import argparse
 from pathlib import Path
+
+# Ensure project root is in sys.path
+project_root = Path(__file__).resolve().parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
 from src.common.config import load_config
 from src.data.category_vocab import CategoryVocabulary
 from src.encoders.siglip_encoder import SigLIPVisionEncoder

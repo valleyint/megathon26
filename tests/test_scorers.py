@@ -1,9 +1,18 @@
 """Unit tests for Stage 1 Scorers (KNNScorer and PrototypeScorer)."""
 
+import sys
 import unittest
 import tempfile
 from pathlib import Path
-import numpy as np
+
+project_root = Path(__file__).resolve().parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+try:
+    import numpy as np
+except ImportError:
+    np = None
 
 from src.data.category_vocab import CategoryVocabulary
 from src.stage1.scorers.prototype_scorer import PrototypeScorer

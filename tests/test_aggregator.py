@@ -1,7 +1,17 @@
 """Unit tests for Stage 1 Aggregator."""
 
+import sys
 import unittest
-import numpy as np
+from pathlib import Path
+
+project_root = Path(__file__).resolve().parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+try:
+    import numpy as np
+except ImportError:
+    np = None
 
 from src.common.types import ScoredCandidate
 from src.stage1.aggregator import Stage1Aggregator

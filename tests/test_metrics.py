@@ -1,6 +1,13 @@
 """Unit tests for evaluation metrics."""
 
+import sys
 import unittest
+from pathlib import Path
+
+project_root = Path(__file__).resolve().parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
 from src.evaluation.metrics import (
     precision_at_k,
     recall_at_k,

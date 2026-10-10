@@ -1,9 +1,18 @@
 """Integration test for the complete Stage 1 Pipeline."""
 
+import sys
 import unittest
 from pathlib import Path
 import tempfile
-import numpy as np
+
+project_root = Path(__file__).resolve().parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+try:
+    import numpy as np
+except ImportError:
+    np = None
 
 from src.data.category_vocab import CategoryVocabulary
 from src.encoders.siglip_encoder import SigLIPVisionEncoder

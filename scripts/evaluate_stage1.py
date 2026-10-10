@@ -1,9 +1,19 @@
 """Evaluate Stage 1 Retrieval on a validation split."""
 
+import sys
 import argparse
 from pathlib import Path
 from typing import List, Set
-import numpy as np
+
+# Ensure project root is in sys.path
+project_root = Path(__file__).resolve().parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+try:
+    import numpy as np
+except ImportError:
+    np = None
 
 from src.common.config import load_config
 from src.data.category_vocab import CategoryVocabulary
