@@ -1,0 +1,548 @@
+# Cascaded Multi-Scorer Retrieval and Hierarchical VLM Verification System
+
+## 1. System Overview and Master Flowchart
+
+The system addresses extreme multi-label category suggestion for Wikimedia Commons by structuring inference into a three-stage cascaded retrieve-and-rerank pipeline. Stage 1 generates a high-recall candidate pool across millions of categories in bounded sub-50ms time. Stage 2 injects metadata-driven event categories, enforces chronological and spatial consistency, and suppresses redundant ancestors along the category Directed Acyclic Graph (DAG). Stage 3 executes fine-grained visual verification and grounding using an ultra-compact Vision-Language Model (VLM) to produce ranked suggestions with human-auditable explanations.
+
+### Master End-to-End Flowchart
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                                       INPUT DATA                                       │
+├───────────────────────────────────────────┬────────────────────────────────────────────┤
+│ • Uploaded Image x                        │ • Raw Wikitext Metadata m (Title, Desc)    │
+│ • Camera EXIF Header (Timestamp)          │ • Geotags (Latitude, Longitude)[cite: 3]   │
+└─────────────────────┬─────────────────────┴─────────────────────┬──────────────────────┘
+                      │                                           │
+                      ▼                                           ▼
+┌───────────────────────────────────────────┐ ┌──────────────────────────────────────────┐
+│  STAGE 1: DENSE MULTI-SCORER RECALL       │ │  STAGE 2: METADATA & EVENT DISCOVERY     │
+│  (Shared SigLIP/CLIP Encoder)[cite: 4]    │ │                                          │
+│  • Extract L2-norm visual embedding z_x   │ │  • Strip Wiki markup & templates[cite: 3]│
+│   [cite: 4]                              │ │  • Extract EXIF capture year[cite: 3]    │
+│  • Scorer 1: k-NN historical image search │ │  • Offline KD-tree reverse geocoding     │
+│    via FAISS index (S_knn)[cite: 4, 5]    │ │    (GPS ──► City/Country)[cite: 3]       │
+│  • Scorer 2: Zero-shot text-prototype     │ │  • LLM proactive event synthesis:        │
+│    cosine matching (s_txt)[cite: 4]       │ │    Generates Commons event hypotheses &  │
+│  • Scorer 3: ASL supervised linear head   │ │    search queries[cite: 3]               │
+│    for head categories (p_c)[cite: 4]     │ │  • Query event category sub-index        │
+│                                           │ │    (BM25 + text embeddings)[cite: 4]     │
+└─────────────────────┬─────────────────────┘ └───────────────────┬──────────────────────┘
+                      │                                           │
+                      │ Top-50 Visual Candidates                  │ Top-20 Event Candidates
+                      └─────────────────────┬─────────────────────┘
+                                            │
+                                            ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                     STAGE 2: CONFLICT PRUNING & GRAPH RESTRUCTURING                    │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│ • Merge into unified candidate pool C_pool (~50–70 categories)[cite: 4]                │
+│ • Filter Temporal Conflicts: Drop candidates whose explicit year violates EXIF date    │
+│  [cite: 3]                                                                            │
+│ • Filter Spatial Conflicts: Drop candidates whose location contradicts GPS bounds      │
+│  [cite: 3]                                                                            │
+│ • Extract local category subgraph from in-memory Commons DAG[cite: 3, 4]               │
+│ • DAG Ancestor Suppression: If high-confidence descendant exists, suppress broad       │
+│   parent categories to enforce the "most-specific" cataloging rule[cite: 3, 4]         │
+└───────────────────────────────────────────┬────────────────────────────────────────────┘
+                                            │
+                                            ▼ Filtered Candidates (10–15 pool)
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                   STAGE 3: FINE-GRAINED VISUAL VERIFICATION & RERANKING                │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│ • Candidate Partitioning: Separate verified metadata tags from visually ambiguous      │
+│   sibling leaves[cite: 3, 4]                                                           │
+│ • Multimodal Prompt Assembly: Image x + sibling candidate definitions + visual traits  │
+│  [cite: 3, 4]                                                                         │
+│ • Single-Turn VLM Forward Pass (Florence-2 / PaliGemma with grammar constraints)       │
+│  [cite: 4, 5]                                                                         │
+│ • Visual Grounding Verification: Verify physical evidence and resolve sibling          │
+│   ambiguities[cite: 3, 4]                                                              │
+│ • Calibrated Score Synthesis: Combine Stage 1/2 priors with VLM verification score     │
+│  [cite: 4]                                                                            │
+└───────────────────────────────────────────┬────────────────────────────────────────────┘
+                                            │
+                                            ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                               FINAL SUGGESTION OUTPUT                                  │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│ • Top-K Ranked Commons Categories Ŷ_k(x, m)[cite: 3]                                   │
+│ • Visual Evidence and Nearest-Neighbor Explanations for Editor Review[cite: 3, 4, 5]   │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+
+```
+
+---
+
+## 2. Stage 1: High-Recall Multi-Scorer Candidate Generation
+
+Stage 1 extracts normalized multimodal features and queries large-scale index structures to narrow millions of potential Commons categories $\vert{}\mathcal{C}\vert{}$ down to a manageable candidate pool $C_{\text{cand}}$ in under 50 ms.
+
+### Shared Feature Representation
+
+All visual operations share a single forward pass through a frozen vision-language backbone $f_\theta$ (SigLIP or CLIP ViT-B/16):
+
+
+$$z_x = \frac{f_\theta(x)}{\Vert{}f_\theta(x)\Vert{}_2} \in \mathbb{R}^d$$
+
+
+Because $z_x$ is computed once and cached, Scorers 1, 2, and 3 run concurrently without extra vision encoder overhead.
+
+### Scorer 1: Instance Retrieval ($k$-NN)
+
+* **Objective:** Identify categories through visual consensus from historical images depicting identical landmarks, artworks, species, or objects.
+
+
+* **Index Configuration:** Pre-compute visual vectors $z_i$ across all historical training images and index them using FAISS with Inverted File Product Quantization (`IndexIVFPQ`). Quantizing to 64 bytes per vector compresses $10^8$ images to approximately 6.4 GB of RAM while delivering sub-10ms inner-product searches.
+
+
+* **Consensus Formulation:** Retrieve the $K = 50$ nearest visual neighbors $\mathcal{N}_K(x)$ and compute temperature-scaled consensus scores:
+
+
+
+$$S_{\text{knn}}(c \mid x) = \frac{\sum_{i \in \mathcal{N}_K(x)} \exp(z_x^\top z_i / \tau) \cdot \mathbb{I}[c \in Y_i]}{\sum_{i \in \mathcal{N}_K(x)} \exp(z_x^\top z_i / \tau)}$$
+
+
+
+where $\tau \in [0.05, 0.1]$ and $\mathbb{I}[c \in Y_i] = 1$ if neighbor $i$ is tagged with category $c$.
+
+
+* **Continual Learning:** When new uploads are accepted by editors, append their normalized vectors directly to the FAISS index with zero model retraining. Neighboring images serve directly as visual explanations in the user interface.
+
+
+
+### Scorer 2: Zero-Shot Text Prototypes
+
+* **Objective:** Cover long-tail, unrepresented, or newly created categories that have zero historical training images.
+
+
+* **Prototype Generation:** Pass category titles, alternate labels, and redirects through the text tower $g_\theta$ matching the vision backbone. Category strings are formatted using structured prompt templates (`"a Wikimedia Commons photograph categorized under {category_name}"`). Precomputed prototype vectors $t_c = g_\theta(\text{text}) / \Vert{}g_\theta(\text{text})\Vert{}_2$ are stored in a category matrix $T \in \mathbb{R}^{\vert{}\mathcal{C}\vert{} \times d}$.
+
+
+* **Scoring Formulation:** Compute direct inner-product similarity against the query image embedding:
+
+
+
+$$s_{\text{txt}}(c \mid x) = z_x^\top t_c$$
+
+
+* **On-the-Fly Category Ingestion:** When a category is created, compute its text embedding $t_{\text{new}}$ and append it to $T$ in memory. The category becomes retrievable immediately.
+
+
+
+### Scorer 3: Supervised Multi-Label Head (Optional / Head Calibration)
+
+* **Objective:** Calibrate empirical probabilities for frequent categories ($n \ge n_{\min} \in [20, 50]$).
+
+
+* **Architecture:** A linear head mapping $z_x$ to per-category sigmoid probabilities $p_c = \sigma(w_c^\top z_x + b_c)$. Classifier weights $W$ are initialized directly from precomputed text prototypes ($w_c^{(0)} = t_c$) to align representations before optimization.
+
+
+* **Asymmetric Loss (ASL):** Trained with margin-based probability shifting to prevent unlabelled positive categories from being penalized as negative examples:
+
+
+
+$$\mathcal{L}_{\text{ASL}} = -\sum_{c \in \mathcal{C}_{\text{sup}}} \left[ y_c (1 - p_c)^{\gamma_+} \log(p_c) + (1 - y_c) (p_{c,m})^{\gamma_-} \log(1 - p_{c,m}) \right]$$
+
+
+
+where $p_{c,m} = \max(p_c - m, 0)$ with hyperparameters $\gamma_+ = 0$, $\gamma_- = 4$, and margin $m = 0.05$.
+
+
+
+### Candidate Aggregation
+
+Extract the top candidates from each active scorer to form the Stage 1 pool:
+
+
+$$C_{\text{visual}} = \text{Top-50}(S_{\text{knn}}) \cup \text{Top-50}(s_{\text{txt}}) \cup \text{Top-50}(p_c)$$
+
+
+This restricts downstream processing to 30–50 unique candidate categories, guaranteeing bounded latency.
+
+---
+
+## 3. Stage 2: Proactive Event Discovery, Metadata Validation & DAG Pruning
+
+Stage 2 resolves non-visual context (events, dates, geographic administrative entities) and structures candidate relationships along the Commons category hierarchy.
+
+### Detailed Stage 2 Flowchart
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                              INPUT DATA                                │
+├───────────────────────────────────┬────────────────────────────────────┤
+│ • Stage 1 Candidates C_visual     │ • Raw Wikitext Title & Description │
+│ • Local Commons Category DAG      │ • EXIF Timestamp & GPS Coordinates │
+│ [cite: 3, 4]                     │ [cite: 3]                         │
+└─────────────────┬─────────────────┴──────────────────┬─────────────────┘
+                  │                                    │
+                  ▼                                    ▼
+┌───────────────────────────────────┐ ┌──────────────────────────────────┐
+│      LOCAL SUBGRAPH EXTRACTION    │ │      SIGNAL PREPROCESSING        │
+│ • Retrieve parent/child relations │ │ • Strip Wiki markup & templates  │
+│   for candidate set[cite: 3, 4]   │ │ • Parse EXIF capture year (YYYY) │
+│ • Group candidates into taxonomic │ │  [cite: 3]                      │
+│   hierarchies (Parent ──► Child)  │ │ • Reverse geocode GPS to         │
+│  [cite: 4]                       │ │   City/State/Country offline     │
+│ • Resolve cyclic category links   │ │ [cite: 3]                       │
+│   [cite: 3]                       │ │                                  │
+└─────────────────┬─────────────────┘ └────────────────┬─────────────────┘
+                  │                                    │
+                  └─────────────────┬──────────────────┘
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│             PROACTIVE EVENT DISCOVERY VIA INSTRUCTION LLM              │
+│  Context: Visual anchor tags + Date + Geolocation + Cleaned Text       │
+│ [cite: 3]                                                             │
+│  1. Synthesize Commons Event Category Hypotheses[cite: 3]:             │
+│     - "[Topic] in [City] in [Year]"                                    │
+│     - "[Year] in [Location/Sport]"                                     │
+│     - "[Year] [Official Event Title]"                                  │
+│  2. Generate lexical and semantic retrieval queries[cite: 3]           │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│             TARGETED EVENT RETRIEVAL & INDEX SNAP                      │
+│ • Query specialized Commons Event sub-index (BM25 + text prototypes)   │
+│  [cite: 4]                                                            │
+│ • Snap generated strings to verified category nodes in the Commons     │
+│   database (preventing hallucinations)[cite: 3]                        │
+│ • Emit top-20 verified event categories C_event[cite: 3]               │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                  UNIFIED CANDIDATE POOL INGESTION                      │
+│ C_pool = C_visual ∪ C_event  (~50 to 70 total unique categories)       │
+│[cite: 4]                                                              │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                  ┌─────────────────┴─────────────────┐
+                  ▼                                   ▼
+      [TEMPORAL CONFLICT FILTER]           [SPATIAL CONFLICT FILTER]
+      Does candidate contain a year?       Does candidate contain an explicit
+                  │                        city, state, or country name?
+         ┌────────┴────────┐                          │
+        YES                NO                ┌────────┴────────┐
+         │                 │                YES                NO
+         ▼                 │                 ▼                 │
+   Matches EXIF capture    │           Within GPS bounding     │
+   year (±1 yr)?           │           box boundaries?         │
+  [cite: 3]               │          [cite: 3]               │
+   ├──► NO  ───────────────┼─────────────────┼──► NO           │
+   │    (Drop Candidate)   │                 │    (Drop)       │
+  YES                      │                YES                │
+   │                       │                 │                 │
+   └───────────┬───────────┘                 └────────┬────────┘
+               │                                      │
+               └──────────────────┬───────────────────┘
+                                  │
+                                  ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                 DAG ANCESTOR PRUNING ("MOST-SPECIFIC RULE")            │
+│ Traversal: For each candidate c in C_pool:                             │
+│ Check descendants(c) ∩ C_pool:                                         │
+│                                                                        │
+│    Does any descendant d exist with confidence score s(d) ≥ τ_child?   │
+│   [cite: 4]                                                           │
+│                                                                        │
+│          ┌──────────────────────┴──────────────────────┐               │
+│         YES                                            NO              │
+│          │                                             │               │
+│          ▼                                             ▼               │
+│   SUPPRESS ANCESTOR c                       RETAIN ANCESTOR c          │
+│   (Preserve leaf specificity)               (Preserve broad fallback)  │
+│  [cite: 3, 4]                              [cite: 4]                  │
+└─────────────────────────────────┬──────────────────────────────────────┘
+                                  │
+                                  ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                      STAGE 2 FILTERED CANDIDATES                       │
+│ Non-redundant, temporally/spatially valid pool C_stage2 (10–15 items)  │
+│[cite: 3, 4]                                                           │
+└────────────────────────────────────────────────────────────────────────┘
+
+```
+
+### Proactive Event Discovery Logic
+
+Visual features fail to discriminate specific events from generic scenes (e.g., distinguishing a demonstration from *2023 French pension reform strikes in Paris*).
+
+1. **Metadata Parsing:** Extract EXIF `DateTimeOriginal` to isolate the 4-digit year ($Y$). Convert GPS latitude and longitude into administrative regions via an offline KD-tree lookup (avoiding remote API latency). Clean wikitext to remove templates and license boilerplate.
+
+
+2. **Taxonomic Event Synthesis:** Pass the top visual concepts from Stage 1 along with parsed date, city, and title text into a fast text LLM (e.g., quantized Llama-3-8B). The LLM generates standard Commons event syntax hypotheses:
+
+
+* `Category:[Topic] in [City] in [YYYY]`
+* `Category:[YYYY] [Official Event Name]`
+
+
+3. **Database Grounding:** Match generated hypotheses against a local Commons event sub-index using reciprocal rank fusion (BM25 + text prototypes). Snap queries strictly to verified categories existing within the Wikimedia database, eliminating hallucinations.
+
+
+
+### Taxonomic Graph Pruning (DAG Optimization)
+
+Commons cataloging rules instruct editors to categorize under the most specific applicable category rather than all ancestor nodes.
+
+* Query the in-memory directed category graph for ancestor-descendant links across $C_{\text{pool}}$.
+
+
+* Pre-process cycles using Tarjan's Strongly Connected Components algorithm to ensure acyclic traversals.
+
+
+* **Suppression Rule:**
+
+$$\text{Retain } c \in C_{\text{pool}} \iff \neg \exists \, d \in \left(\text{Descendants}(c) \cap C_{\text{pool}}\right) \text{ such that } s(d) \ge \tau_{\text{child}}$$
+
+
+* If child category $d$ has high confidence ($s(d) \ge 0.35$), prune parent $c$. If no child triggers, retain parent $c$ as a safe, broad fallback.
+
+
+
+---
+
+## 4. Stage 3: Fine-Grained Visual Grounding & Calibrated Reranking
+
+Stage 3 resolves visual ambiguities among the 10 to 15 candidates emerging from Stage 2 by directly checking image pixels against candidate attributes.
+
+### Detailed Stage 3 Flowchart
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                              INPUT DATA                                │
+├───────────────────────────────────┬────────────────────────────────────┤
+│ • Pre-Filtered Candidates (10–15) │ • Raw Uploaded Image x             │
+│   from Stage 2[cite: 3, 4]        │ • Category definitions & traits    │
+└─────────────────┬─────────────────┴──────────────────┬─────────────────┘
+                  │                                    │
+                  ▼                                    ▼
+┌───────────────────────────────────┐ ┌──────────────────────────────────┐
+│       CANDIDATE PARTITIONING      │ │      IMAGE PREPROCESSING         │
+│ • Separate verified event/geo     │ │ • Fixed-size normalization &     │
+│   categories from visual classes  │ │   resize matching VLM input      │
+│  [cite: 3, 4]                    │ │   resolution[cite: 4]            │
+│ • Group competing sibling leaves  │ │                                  │
+│   under common parents[cite: 4]   │ │                                  │
+└─────────────────┬─────────────────┘ └────────────────┬─────────────────┘
+                  │                                    │
+                  └─────────────────┬──────────────────┘
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                 MULTIMODAL PROMPT CONTEXT ASSEMBLY                     │
+│ Structure discriminative prompt with:                                  │
+│ 1. Candidate categories with key identifying visual markers            │
+│ 2. Task instruction: Verify visual presence & disambiguate siblings    │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                      SINGLE-TURN VLM FORWARD PASS                      │
+│        (Florence-2 / PaliGemma with grammar-guided decoding)[cite: 4]  │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                  ┌─────────────────┴─────────────────┐
+                  ▼                                   ▼
+      [FINE-GRAINED DISCRIMINATION]        [GROUNDING VERIFICATION]
+      Compare visual attributes of         Does the image contain visual
+      competing sibling leaves             evidence for the candidate?
+                  │                                   │
+         ┌────────┴────────┐                 ┌────────┴────────┐
+         ▼                 ▼                 ▼                 ▼
+   Sibling A fits    Sibling B fits       CONFIRMED       NOT GROUNDED
+   visual markers    visual markers          │                 │
+         │                 │                 │                 ▼
+         ▼                 ▼                 ▼          Drop candidate /
+     Promote           Promote         Retain & boost   suppress score
+    Sibling A         Sibling B          confidence    [cite: 3, 4]
+         │                 │                 │                 │
+         └────────┬────────┘                 └────────┬────────┘
+                  │                                   │
+                  └─────────────────┬─────────────────┘
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                    SCORE SYNTHESIS & CALIBRATION                       │
+│ • Fuse VLM verification confidence with Stage 1 & 2 scores[cite: 4]    │
+│ • Enforce graph consistency (final ancestor drop if child confirmed)   │
+│  [cite: 3, 4]                                                         │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                        FINAL SUGGESTION OUTPUT                         │
+│ • Ranked Top-K categories Ŷ_k(x, m)[cite: 3]                           │
+│ • Visual explanation snippets for human editor review[cite: 3, 5]      │
+└────────────────────────────────────────────────────────────────────────┘
+
+```
+
+### Stage 3 Implementation Details
+
+1. **Sibling Partitioning:** Group competing leaf nodes sharing parent classes (e.g., distinguishing *Gothic Revival architecture* from *Rayonnant Gothic*).
+
+
+2. **Constrained Single-Turn VLM Pass:** Pass the image alongside the candidate set into a lightweight VLM (e.g., Florence-2-base, 0.23B parameters) configured with grammar-constrained decoding (JSON schema). Restricting generation to binary verification flags and visual evidence tokens bounds inference latency to under 50 ms.
+
+
+3. **Calibrated Score Fusion:** Combine early retrieval scores with VLM verification confidence:
+
+
+
+$$s_{\text{final}}(c \mid x, m) = \alpha \cdot s_{\text{prior}}(c) + \beta \cdot s_{\text{VLM}}(c \mid x)$$
+
+
+
+Candidates marked as ungrounded receive zero weight and are removed from suggestions.
+
+
+4. **Explainability Audit Trail:** Retain the VLM's visual evidence phrase (e.g., *"Pointed ribbed vaulting and lancet windows verified"*) alongside the category in the user interface to satisfy the open auditability rubric requirement.
+
+
+
+---
+
+## 5. Latency, Serving, and Continual Learning Budget
+
+Commons processes $10^4$ to $10^5$ uploads per day, requiring an average throughput of approximately 1 image/s with bounded computational overhead.
+
+### Latency Profile per Upload
+
+| Pipeline Step | Execution Component | Latency (GPU) | Latency (CPU) |
+| --- | --- | --- | --- |
+| **Stage 1: Vision Forward Pass** | SigLIP / ViT-B/16 ($z_x$ embedding)
+
+ | 18 – 24 ms | 70 – 110 ms |
+| **Stage 1: Scorer 1 ($k$-NN)** | FAISS `IndexIVFPQ` ($K=50$ lookup)
+
+ | 3 – 5 ms | 6 – 12 ms |
+| **Stage 1: Scorer 2 (Zero-Shot)** | Matrix product $z_x^\top T$ ($50\text{k}$ categories)
+
+ | 1 – 2 ms | 4 – 8 ms |
+| **Stage 2: Metadata & Geocoding** | Regex extraction + offline KD-tree lookup
+
+ | 1 – 2 ms | 1 – 2 ms |
+| **Stage 2: Event Query & BM25** | LLM hypothesis + lexical/dense lookup
+
+ | 40 – 70 ms | 120 – 180 ms |
+| **Stage 2: Category DAG Pruning** | In-memory graph traversal & ancestor drop
+
+ | 1 – 3 ms | 2 – 4 ms |
+| **Stage 3: VLM Verification** | Constrained Florence-2 forward pass
+
+ | 40 – 60 ms | 180 – 260 ms |
+| **Total End-to-End Latency** |  | **104 – 166 ms** | **383 – 576 ms** |
+
+Both GPU and CPU profiles operate comfortably below the 1,000 ms ceiling, sustaining 6 to 10 images/s on a single worker and exceeding the 1 image/s volume requirement.
+
+### Memory & Index Footprint
+
+* **Historical Images:** Compressed to 64 bytes/vector using Product Quantization ($10^7$ images require $\approx 640$ MB; $10^8$ images require $\approx 6.4$ GB RAM).
+
+
+* **Category Text Prototypes:** 50,000 categories at 768-d float16 require $\approx 76.8$ MB RAM.
+
+
+* **Category Graph:** In-memory adjacency dictionaries across millions of Commons categories consume $\approx 350$ MB RAM.
+
+
+
+### Continual Learning Mechanics
+
+* **Instant Index Appends:** New accepted uploads are added directly to the FAISS index without retraining the backbone.
+
+
+* **Instant Category Additions:** Newly created categories are embedded via text encoder $g_\theta$ and appended to prototype matrix $T$, enabling immediate zero-shot discovery.
+
+
+* **Negative Feedback Loop:** Editor rejections are logged as hard negatives to calibrate candidate score thresholds.
+
+
+
+---
+
+## 6. Evaluation Protocol and Rubric Alignment
+
+Because editors assign multiple categories and the label space is large, single-label accuracy is inapplicable. Evaluation follows ranking metrics over top-$k$ suggestions $\hat{Y}_k(x, m)$ against editor-assigned ground truth $Y(x)$:
+
+
+$$P@k = \frac{\vert{}\hat{Y}_k \cap Y\vert{}}{k}, \quad R@k = \frac{\vert{}\hat{Y}_k \cap Y\vert{}}{\vert{}Y\vert{}}, \quad F1@k = \frac{2 \cdot P@k \cdot R@k}{P@k + R@k}$$
+
+
+Mean Average Precision (mAP) is evaluated across categories, accompanied by hierarchy-aware precision where predicted ancestors/descendants receive partial credit.
+
+### Protocol & Validation Splits
+
+* **Temporal Hold-Out:** Train on earlier uploads and test on later uploads to evaluate true generalization over time.
+
+
+* **Deduplication:** Remove near-duplicates across splits using perceptual hashing (pHash) and cosine similarity thresholds ($>0.92$) to prevent data leakage.
+
+
+* **Stratified Breakdown:** Report results separated across head, torso, and tail frequencies, as well as category semantics (objects, scenes, events, abstract concepts).
+
+
+
+### Rubric Criteria Alignment
+
+| Evaluation Rubric Criterion
+
+ | Weight
+
+ | Implementation Architecture Evidence |
+| --- | --- | --- |
+| **Accuracy on new images**<br> | 40%
+
+ | High-recall multi-scorer candidate generation evaluated on temporal split; tail categories covered via zero-shot prototypes.
+
+ |
+| **Category breadth**<br> | 10%
+
+ | Multimodal coverage: visual concepts via SigLIP, events and abstract concepts via Stage 2 metadata parsing and geocoding.
+
+ |
+| **Efficiency and scalability**<br> | 15%
+
+ | Sub-200ms end-to-end GPU inference; IVF-PQ index compression runs on $<8$ GB RAM; exceeds 1 img/s throughput target.
+
+ |
+| **Robustness**<br> | 10%
+
+ | Visual backbone evaluated against downscaling, blur, and JPEG compression degradation bands.
+
+ |
+| **Continual learning**<br> | 10%
+
+ | Append-only FAISS index updates for images; instant category prototype vector addition with zero model retraining.
+
+ |
+| **Wikimedia fit and usability**<br> | 10%
+
+ | Graph ancestor suppression enforces Commons "most-specific" cataloging; Stage 3 outputs explainable visual evidence tokens.
+
+ |
+| **Presentation**<br> | 5%
+
+ | Clear demo video showing human review workflow, nearest neighbors, and audit trail.
+
+ |
+
+---
+
+## 7. Megathon X Execution Roadmap
+
+* **M1 Deliverable (10:00 PM, 10th October):** Approach PDF (`deliverables/M1.pdf`, max 2 pages, double-blind). Documents problem statement, cascaded architecture diagram, and temporal evaluation plan.
+
+
+* **M2 Deliverable (4:00 AM, 11th October):** Progress report (`deliverables/M2.pdf`, max 2 pages) and code push to `main`. Delivers functioning Stage 1 (FAISS $k$-NN + text prototypes) evaluated on temporal validation set, establishing baseline $P@k$ and $R@k$.
+
+
+* **Final Submission (11:00 AM, 11th October):** Full repository code, `deliverables/final_report.pdf` (max 3 pages), MIT License, code zip backup, and max 4-minute demo video link (Google Drive set to public).
+
+
+* **Slides Submission (11:30 AM, 11th October):** Slides PDF covering problem, approach, solution, and results submitted via the slides form.
