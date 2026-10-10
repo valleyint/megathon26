@@ -28,6 +28,23 @@ DEFAULT_CATEGORIES = [
 ]
 
 
+def is_topical_category(title: str) -> bool:
+    """Filter out administrative, license, maintenance, and tracking categories."""
+    clean = title.replace("Category:", "").strip().lower()
+    excluded_keywords = [
+        "cc-", "cc by", "gfdl", "public domain", "pd-", "self-published",
+        "uploaded", "media from", "media needing", "files with", "files by",
+        "images by", "created with", "taken with", "supported by",
+        "featured pictures", "quality images", "valued images",
+        "svg", "jpeg", "png", "tif", "audio", "video", "webm",
+        "wikiproject", "wikipedia", "user:", "items with", "pages with"
+    ]
+    for kw in excluded_keywords:
+        if kw in clean:
+            return False
+    return True
+
+
 def fetch_commons_category_files(
     category_name: str,
     limit: int = 6,
@@ -46,7 +63,8 @@ def fetch_commons_category_files(
         "prop": "imageinfo|categories",
         "iiprop": "url|timestamp|extmetadata",
         "iiurlwidth": str(thumb_width),
-        "cllimit": "20",
+        "clshow": "!hidden",
+        "cllimit": "30",
         "format": "json",
     }
     
@@ -69,9 +87,12 @@ def fetch_commons_category_files(
         if not thumb_url:
             continue
 
-        # Extract all categories assigned to this image on Commons
-        raw_cats = [c["title"] for c in page_info.get("categories", []) if "title" in c]
-        if cat_title not in raw_cats:
+        # Extract only topical, non-administrative categories
+        raw_cats = [
+            c["title"] for c in page_info.get("categories", [])
+            if "title" in c and is_topical_category(c["title"])
+        ]
+        if cat_title not in raw_cats and is_topical_category(cat_title):
             raw_cats.append(cat_title)
 
         # Extract timestamp and geolocation if present
@@ -150,8 +171,9 @@ def download_real_commons_dataset(
             # Register categories in vocabulary
             assigned_cats = []
             for c in item["categories"]:
-                vocab.add_category(c)
-                assigned_cats.append(vocab.normalize_name(c))
+                if is_topical_category(c):
+                    vocab.add_category(c)
+                    assigned_cats.append(vocab.normalize_name(c))
 
             queries.append(
                 ImageQuery(
