@@ -52,7 +52,7 @@ class Stage1Pipeline:
                 query_id=query_id,
                 embedding=z_x,
                 scorer_outputs=scorer_outputs,
-                latency_ms=timer.get_summary(),
             )
 
+        candidate_pool.latency_ms = timer.get_summary()
         return candidate_pool
