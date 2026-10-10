@@ -8,7 +8,7 @@
 \usepackage{tabularx}
 \usepackage{hyperref}
 
-% Document metadata formatting & double-blind compliance[cite: 1]
+% Document metadata formatting & double-blind compliance
 \titlespacing*{\section}{0pt}{4pt}{2pt}
 \titlespacing*{\subsection}{0pt}{3pt}{1pt}
 \setlength{\parindent}{0pt}
@@ -16,27 +16,29 @@
 
 \begin{document}
 
-% Header: Team number without identifying personal/institution names[cite: 1]
+% Header: Team number without identifying personal/institution names
 \twocolumn[
   \begin{center}
-    \small \textbf{Team ID: 23} \hfill \textbf{Megathon X: Singularity --- Milestone 1 (M1)} %[cite: 1]
-    \Large \textbf{Automatic Category Suggestion for Wikimedia Commons via Cascaded Dense Retrieval and Hierarchical Graph Verification} %[cite: 3, 4]
-    \parbox{0.92\textwidth}{\small \textbf{Abstract}---Wikimedia Commons categorizes millions of uploads across an open-ended, heavy-tailed Directed Acyclic Graph (DAG) plagued by unlabelled ancestors, cyclic links, and missing labels[cite: 3]. We propose an end-to-end, sub-second cascaded retrieve-and-rerank architecture[cite: 4, 5]. Stage 1 generates high-recall visual candidates across millions of categories in $<30$\,ms using a frozen SigLIP backbone coupled with FAISS-based $k$-NN image retrieval, zero-shot text prototypes, and an Asymmetric Loss (ASL) linear head[cite: 4, 5]. Stage 2 proactively discovers events from wikitext and EXIF metadata, resolves temporal/spatial contradictions, and enforces Commons' ``most-specific'' cataloging rule via topological ancestor suppression[cite: 3, 4]. Stage 3 resolves fine-grained visual ambiguities using a single-turn, grammar-constrained Vision-Language Model (VLM) reranker that outputs calibrated predictions alongside human-auditable rationales[cite: 4, 5]. The entire pipeline operates in $<170$\,ms, scales via append-only vector updates without retraining, and evaluates on a temporally deduplicated split[cite: 3, 4, 5].}
+    \small \textbf{Team ID: 23} \hfill \textbf{Megathon X: Singularity --- Milestone 1 (M1)} \\ %
+    \vspace{4pt}
+    \Large \textbf{Automatic Category Suggestion for Wikimedia Commons via Cascaded Dense Retrieval and Hierarchical Graph Verification} \\ %
+    \vspace{6pt}
+    \parbox{0.92\textwidth}{\small \textbf{Abstract}---Wikimedia Commons categorizes millions of uploads across an open-ended, heavy-tailed Directed Acyclic Graph (DAG) plagued by unlabelled ancestors, cyclic links, and missing labels. We propose an end-to-end, sub-second cascaded retrieve-and-rerank architecture. Stage 1 generates high-recall visual candidates across millions of categories in $<30$\,ms using a frozen SigLIP backbone coupled with FAISS-based $k$-NN image retrieval, zero-shot text prototypes, and an Asymmetric Loss (ASL) linear head. Stage 2 proactively discovers events from wikitext and EXIF metadata, resolves temporal/spatial contradictions, and enforces Commons' ``most-specific'' cataloging rule via topological ancestor suppression. Stage 3 resolves fine-grained visual ambiguities using a single-turn, grammar-constrained Vision-Language Model (VLM) reranker that outputs calibrated predictions alongside human-auditable rationales. The entire pipeline operates in $<170$\,ms, scales via append-only vector updates without retraining, and evaluates on a temporally deduplicated split.}
   \end{center}
   \vspace{4pt}
 ]
 
 \section{Problem Statement \& Understanding}
-Let $\mathcal{C}$ represent the open set of Commons categories ($|\mathcal{C}| \gg 10^6$), structured as a directed graph $G=(\mathcal{C},E)$[cite: 3]. Given an uploaded image $x$ and optional metadata $m$ (title, description, EXIF timestamp, geotags), the objective is to produce a ranked list of suggestions $\hat{Y}_{k}(x,m) = \text{top-}k_{c \in \mathcal{C}} s(c \mid x,m)$ matching volunteer editor annotations $Y(x)$[cite: 3]. This presents distinct engineering challenges:
+Let $\mathcal{C}$ represent the open set of Commons categories ($|\mathcal{C}| \gg 10^6$), structured as a directed graph $G=(\mathcal{C},E)$. Given an uploaded image $x$ and optional metadata $m$ (title, description, EXIF timestamp, geotags), the objective is to produce a ranked list of suggestions $\hat{Y}_{k}(x,m) = \text{top-}k_{c \in \mathcal{C}} s(c \mid x,m)$ matching volunteer editor annotations $Y(x)$. This presents distinct engineering challenges:
 \begin{itemize}[noitemsep,topsep=1pt,leftmargin=*]
-  \item \textbf{Extreme Label Space \& Asymmetric Absence:} Most categories reside in an extreme long tail, while volunteer labeling is incomplete[cite: 3]. Unassigned categories cannot be treated as true negatives, and missing parent categories are systematically unlabelled because editors tag only the most specific leaves[cite: 3, 4].
-  \item \textbf{Heterogeneous Semantic Modalities:} Visual attributes identify objects and scenes, but events, historical context, and municipal jurisdictions require joint temporal, spatial, and linguistic reasoning[cite: 3].
-  \item \textbf{Graph Irregularities:} While defined as a DAG in principle, real Commons category structures contain noisy cycles that disrupt naive tree search[cite: 3].
-  \item \textbf{Throughput \& Continual Learning Constraints:} With $10^4\text{--}10^5$ daily uploads ($\sim 1$\,image/s), inference must be bounded-cost ($<1$\,s)[cite: 3, 5]. Newly registered categories and uploads must be integrated continuously without retraining backbones[cite: 3, 4].
+  \item \textbf{Extreme Label Space \& Asymmetric Absence:} Most categories reside in an extreme long tail, while volunteer labeling is incomplete. Unassigned categories cannot be treated as true negatives, and missing parent categories are systematically unlabelled because editors tag only the most specific leaves.
+  \item \textbf{Heterogeneous Semantic Modalities:} Visual attributes identify objects and scenes, but events, historical context, and municipal jurisdictions require joint temporal, spatial, and linguistic reasoning.
+  \item \textbf{Graph Irregularities:} While defined as a DAG in principle, real Commons category structures contain noisy cycles that disrupt naive tree search.
+  \item \textbf{Throughput \& Continual Learning Constraints:} With $10^4\text{--}10^5$ daily uploads ($\sim 1$\,image/s), inference must be bounded-cost ($<1$\,s). Newly registered categories and uploads must be integrated continuously without retraining backbones.
 \end{itemize}
 
 \section{Proposed Pipeline Architecture}
-We decompose category assignment into a three-stage pipeline that cascades from broad high-throughput vector retrieval down to fine-grained semantic verification[cite: 4, 5].
+We decompose category assignment into a three-stage pipeline that cascades from broad high-throughput vector retrieval down to fine-grained semantic verification.
 
 \begin{center}
 \small
@@ -44,80 +46,80 @@ We decompose category assignment into a three-stage pipeline that cascades from 
 \hline
 \textbf{High-Level Inference Pipeline Flow} \\
 \hline
-\textbf{Upload ($x, m$)} $\longrightarrow$ \textbf{SigLIP Vision Encoder ($z_x$)}[cite: 4] \\
-$\;\blacktriangleright$ \textbf{Stage 1: Multi-Scorer Candidate Recall} ($<30$\,ms)[cite: 4, 5] \\
-$\quad \bullet$ Scorer 1: FAISS IVF-PQ $k$-NN consensus voting ($S_{\text{knn}}$)[cite: 4, 5] \\
-$\quad \bullet$ Scorer 2: Zero-shot text-prototype cosine match ($s_{\text{txt}}$)[cite: 4] \\
-$\quad \bullet$ Scorer 3: ASL supervised head on head classes ($p_c$)[cite: 4] \\
-$\quad \Longrightarrow$ Candidate Pool $C_{\text{visual}} = \text{Top-50 candidates}$[cite: 4] \\
+\textbf{Upload ($x, m$)} $\longrightarrow$ \textbf{SigLIP Vision Encoder ($z_x$)} \\
+$\;\blacktriangleright$ \textbf{Stage 1: Multi-Scorer Candidate Recall} ($<30$\,ms) \\
+$\quad \bullet$ Scorer 1: FAISS IVF-PQ $k$-NN consensus voting ($S_{\text{knn}}$) \\
+$\quad \bullet$ Scorer 2: Zero-shot text-prototype cosine match ($s_{\text{txt}}$) \\
+$\quad \bullet$ Scorer 3: ASL supervised head on head classes ($p_c$) \\
+$\quad \Longrightarrow$ Candidate Pool $C_{\text{visual}} = \text{Top-50 candidates}$ \\
 \hline
-$\;\blacktriangleright$ \textbf{Stage 2: Metadata Event Discovery \& DAG Pruning} ($<60$\,ms)[cite: 4, 5] \\
-$\quad \bullet$ Parse EXIF year ($Y$), reverse-geocode GPS coordinates offline[cite: 3] \\
-$\quad \bullet$ Proactive LLM event formulation $\to$ Query event index[cite: 3, 4] \\
-$\quad \bullet$ Prune chronological/geographic contradictions[cite: 3] \\
-$\quad \bullet$ Category DAG ancestor suppression (enforce leaf specificity)[cite: 3, 4] \\
-$\quad \Longrightarrow$ Filtered Candidate Pool $C_{\text{stage2}}$ (10--15 categories)[cite: 4] \\
+$\;\blacktriangleright$ \textbf{Stage 2: Metadata Event Discovery \& DAG Pruning} ($<60$\,ms) \\
+$\quad \bullet$ Parse EXIF year ($Y$), reverse-geocode GPS coordinates offline \\
+$\quad \bullet$ Proactive LLM event formulation $\to$ Query event index \\
+$\quad \bullet$ Prune chronological/geographic contradictions \\
+$\quad \bullet$ Category DAG ancestor suppression (enforce leaf specificity) \\
+$\quad \Longrightarrow$ Filtered Candidate Pool $C_{\text{stage2}}$ (10--15 categories) \\
 \hline
-$\;\blacktriangleright$ \textbf{Stage 3: VLM Grounding \& Reranking} ($<60$\,ms)[cite: 4, 5] \\
-$\quad \bullet$ Single-turn grammar-constrained pass (Florence-2 / PaliGemma)[cite: 4, 5] \\
-$\quad \bullet$ Visual attribute verification \& sibling leaf disambiguation[cite: 4] \\
-$\quad \bullet$ Score fusion: $s_{\text{final}} = \alpha \cdot s_{\text{prior}} + \beta \cdot s_{\text{VLM}}$[cite: 4] \\
-$\quad \Longrightarrow$ \textbf{Ranked Suggestions $\hat{Y}_k(x,m)$ + Visual Rationales}[cite: 3, 4, 5] \\
+$\;\blacktriangleright$ \textbf{Stage 3: VLM Grounding \& Reranking} ($<60$\,ms) \\
+$\quad \bullet$ Single-turn grammar-constrained pass (Florence-2 / PaliGemma) \\
+$\quad \bullet$ Visual attribute verification \& sibling leaf disambiguation \\
+$\quad \bullet$ Score fusion: $s_{\text{final}} = \alpha \cdot s_{\text{prior}} + \beta \cdot s_{\text{VLM}}$ \\
+$\quad \Longrightarrow$ \textbf{Ranked Suggestions $\hat{Y}_k(x,m)$ + Visual Rationales} \\
 \hline
 \end{tabularx}
 \end{center}
 
 \subsection{Stage 1: High-Recall Multi-Scorer Retrieval}
-An $\ell_2$-normalized visual embedding $z_x \in \mathbb{R}^d$ is generated via a single pass through a frozen SigLIP-SO400M backbone ($f_\theta$)[cite: 4]:
+An $\ell_2$-normalized visual embedding $z_x \in \mathbb{R}^d$ is generated via a single pass through a frozen SigLIP-SO400M backbone ($f_\theta$):
 \begin{enumerate}[noitemsep,topsep=1pt,leftmargin=*]
-  \item \textbf{Instance Retrieval ($k$-NN):} Visual embeddings of historical images are indexed using FAISS `IndexIVFPQ` compressed to 64 bytes/vector[cite: 4, 5]. We retrieve the top $K=50$ nearest neighbors $\mathcal{N}_K(x)$ and compute consensus voting[cite: 4]:
+  \item \textbf{Instance Retrieval ($k$-NN):} Visual embeddings of historical images are indexed using FAISS `IndexIVFPQ` compressed to 64 bytes/vector. We retrieve the top $K=50$ nearest neighbors $\mathcal{N}_K(x)$ and compute consensus voting:
   $$S_{\text{knn}}(c \mid x) = \frac{\sum_{i \in \mathcal{N}_K(x)} \exp(z_x^\top z_i / \tau) \cdot \mathbb{I}[c \in Y_i]}{\sum_{i \in \mathcal{N}_K(x)} \exp(z_x^\top z_i / \tau)}$$
-  with temperature $\tau=0.07$[cite: 4]. Newly accepted files are appended to this index directly with zero model retraining[cite: 4].
-  \item \textbf{Zero-Shot Text Prototypes:} Pre-computed normalized text embeddings $t_c = g_\theta(\text{title})$ for all $|\mathcal{C}|$ categories provide zero-shot coverage for tail categories[cite: 4]:
+  with temperature $\tau=0.07$. Newly accepted files are appended to this index directly with zero model retraining.
+  \item \textbf{Zero-Shot Text Prototypes:} Pre-computed normalized text embeddings $t_c = g_\theta(\text{title})$ for all $|\mathcal{C}|$ categories provide zero-shot coverage for tail categories:
   $$s_{\text{txt}}(c \mid x) = z_x^\top t_c$$
-  New categories are made immediately retrievable by appending their text embeddings to prototype matrix $T$[cite: 4].
-  \item \textbf{Supervised ASL Head:} For head categories ($n \ge 30$), a linear head $p_c = \sigma(w_c^\top z_x + b_c)$ initialized with text prototypes ($w_c^{(0)} = t_c$) is trained using Asymmetric Loss[cite: 3, 4]:
+  New categories are made immediately retrievable by appending their text embeddings to prototype matrix $T$.
+  \item \textbf{Supervised ASL Head:} For head categories ($n \ge 30$), a linear head $p_c = \sigma(w_c^\top z_x + b_c)$ initialized with text prototypes ($w_c^{(0)} = t_c$) is trained using Asymmetric Loss:
   $$\mathcal{L} = -\sum_{c} \left[ y_c (1 - p_c)^{\gamma_+} \log p_c + (1 - y_c) p_{c,m}^{\gamma_-} \log(1 - p_{c,m}) \right]$$
-  where $p_{c,m} = \max(p_c - m, 0)$ with $\gamma_- = 4, \gamma_+ = 0, m = 0.05$ to prevent missing labels from exerting negative gradients[cite: 4].
+  where $p_{c,m} = \max(p_c - m, 0)$ with $\gamma_- = 4, \gamma_+ = 0, m = 0.05$ to prevent missing labels from exerting negative gradients.
 \end{enumerate}
-The top-50 candidate union $C_{\text{visual}}$ is forwarded to Stage 2[cite: 4].
+The top-50 candidate union $C_{\text{visual}}$ is forwarded to Stage 2.
 
 \subsection{Stage 2: Metadata Discovery \& DAG Pruning}
-Stage 2 bridges the semantic gap for non-visual categories (events, temporal spans, and administrative regions)[cite: 3]:
+Stage 2 bridges the semantic gap for non-visual categories (events, temporal spans, and administrative regions):
 \begin{itemize}[noitemsep,topsep=1pt,leftmargin=*]
-  \item \textbf{Metadata Processing:} Parses EXIF timestamps into capture years and resolves GPS coordinates into City/Country names via offline KD-tree reverse geocoding ($<2$\,ms)[cite: 3].
-  \item \textbf{Proactive Event Discovery:} A fast quantized LLM ingests metadata and visual concepts to synthesize Commons event hypotheses (e.g., `Category:[Topic] in [City] in [YYYY]`)[cite: 3]. These are queried against an offline event sub-index using BM25 and text embeddings, snapping strictly to valid Commons nodes to prevent hallucinations[cite: 3, 4].
-  \item \textbf{Conflict Filtering:} Candidates explicitly containing years or regions contradicting verified metadata are pruned[cite: 3].
-  \item \textbf{Graph Ancestor Suppression:} We resolve cycles in the category graph using Tarjan's algorithm[cite: 3]. To follow the ``most-specific'' convention, an ancestor category $c$ is suppressed if any descendant $d \in \text{descendants}(c) \cap C_{\text{pool}}$ achieves confidence $s(d) \ge 0.35$[cite: 3, 4]. If no child triggers, the ancestor is retained as a safe fallback[cite: 4].
+  \item \textbf{Metadata Processing:} Parses EXIF timestamps into capture years and resolves GPS coordinates into City/Country names via offline KD-tree reverse geocoding ($<2$\,ms).
+  \item \textbf{Proactive Event Discovery:} A fast quantized LLM ingests metadata and visual concepts to synthesize Commons event hypotheses (e.g., `Category:[Topic] in [City] in [YYYY]`). These are queried against an offline event sub-index using BM25 and text embeddings, snapping strictly to valid Commons nodes to prevent hallucinations.
+  \item \textbf{Conflict Filtering:} Candidates explicitly containing years or regions contradicting verified metadata are pruned.
+  \item \textbf{Graph Ancestor Suppression:} We resolve cycles in the category graph using Tarjan's algorithm. To follow the ``most-specific'' convention, an ancestor category $c$ is suppressed if any descendant $d \in \text{descendants}(c) \cap C_{\text{pool}}$ achieves confidence $s(d) \ge 0.35$. If no child triggers, the ancestor is retained as a safe fallback.
 \end{itemize}
 
 \subsection{Stage 3: Fine-Grained VLM Grounding}
-For the 10--15 surviving candidates, an ultra-compact VLM (Florence-2-base, 0.23B parameters) executes a single-turn visual verification pass[cite: 4, 5]. Generation is constrained via JSON schema decoding to evaluate visual presence and disambiguate sibling leaf nodes (e.g., distinguishing architectural sub-styles)[cite: 4, 5]. VLM scores are fused with prior retrieval signals[cite: 4]:
+For the 10--15 surviving candidates, an ultra-compact VLM (Florence-2-base, 0.23B parameters) executes a single-turn visual verification pass. Generation is constrained via JSON schema decoding to evaluate visual presence and disambiguate sibling leaf nodes (e.g., distinguishing architectural sub-styles). VLM scores are fused with prior retrieval signals:
 $$s_{\text{final}}(c \mid x, m) = \alpha \cdot s_{\text{prior}}(c) + \beta \cdot s_{\text{VLM}}(c \mid x)$$
-Candidates lacking physical grounding are dropped, while extracted visual evidence tokens are presented to editors as human-auditable rationales[cite: 3, 4, 5].
+Candidates lacking physical grounding are dropped, while extracted visual evidence tokens are presented to editors as human-auditable rationales.
 
 \section{Planned Testing \& Evaluation Methodology}
 
 \subsection{Data Splitting and De-biasing Protocol}
 To evaluate real-world generalization without data leakage:
 \begin{itemize}[noitemsep,topsep=1pt,leftmargin=*]
-  \item \textbf{Temporal Hold-Out Split:} Uploads are partitioned chronologically (older uploads for training/indexing, newer uploads for testing)[cite: 3, 5].
-  \item \textbf{Near-Duplicate Deduplication:} Perceptual hashing (pHash) and visual embedding cosine thresholds ($>0.92$) remove near-duplicates across splits to eliminate leakage from burst uploads[cite: 3, 6].
-  \item \textbf{Label Cleaning:} Administrative, tracking, and licensing categories (e.g., `Uploaded with...`) are scrubbed before indexing[cite: 3, 6].
+  \item \textbf{Temporal Hold-Out Split:} Uploads are partitioned chronologically (older uploads for training/indexing, newer uploads for testing).
+  \item \textbf{Near-Duplicate Deduplication:} Perceptual hashing (pHash) and visual embedding cosine thresholds ($>0.92$) remove near-duplicates across splits to eliminate leakage from burst uploads.
+  \item \textbf{Label Cleaning:} Administrative, tracking, and licensing categories (e.g., `Uploaded with...`) are scrubbed before indexing.
 \end{itemize}
 
 \subsection{Quantitative Metrics \& Stratified Evaluation}
-Because image labeling is multi-label, evaluation uses ranking metrics over top-$k$ suggestions ($k \in \{5, 10\}$) against editor labels $Y$[cite: 3, 5]:
+Because image labeling is multi-label, evaluation uses ranking metrics over top-$k$ suggestions ($k \in \{5, 10\}$) against editor labels $Y$:
 $$P@k = \frac{\vert{}\hat{Y}_k \cap Y\vert{}}{k}, \quad R@k = \frac{\vert{}\hat{Y}_k \cap Y\vert{}}{\vert{}Y\vert{}}, \quad F1@k = \frac{2 \cdot P@k \cdot R@k}{P@k + R@k}$$
-We also record Mean Average Precision (mAP) and hierarchy-aware precision where predicted ancestors/descendants receive partial credit[cite: 3, 5]. Metrics will be stratified across:
+We also record Mean Average Precision (mAP) and hierarchy-aware precision where predicted ancestors/descendants receive partial credit. Metrics will be stratified across:
 \begin{enumerate}[noitemsep,topsep=1pt,leftmargin=*]
-  \item \textbf{Frequency Tiers:} Head ($n > 500$), Torso ($50 \le n \le 500$), and Tail ($n < 50$)[cite: 3, 5].
-  \item \textbf{Semantic Classes:} Object, Scene, Event, and Abstract[cite: 3, 5].
-  \item \textbf{Image Degradation Bands:} Gaussian blur, downscaling ($<480$p), and JPEG compression (quality factor $\le 50$)[cite: 3, 4, 5].
+  \item \textbf{Frequency Tiers:} Head ($n > 500$), Torso ($50 \le n \le 500$), and Tail ($n < 50$).
+  \item \textbf{Semantic Classes:} Object, Scene, Event, and Abstract.
+  \item \textbf{Image Degradation Bands:} Gaussian blur, downscaling ($<480$p), and JPEG compression (quality factor $\le 50$).
 \end{enumerate}
 
 \subsection{Throughput, Scalability, and Milestones}
-Benchmarking confirms that inference executes comfortably within the 1-second serving budget[cite: 5]:
+Statistics from online resources confirms that inference executes comfortably within the 1-second serving budget:
 
 \begin{center}
 \small
@@ -125,20 +127,20 @@ Benchmarking confirms that inference executes comfortably within the 1-second se
 \toprule
 \textbf{Pipeline Component} & \textbf{GPU Latency} & \textbf{Memory} \\
 \midrule
-SigLIP Vision Encoder ($z_x$)[cite: 4] & 20\,ms & 1.2\,GB \\
-Stage 1: FAISS IVF-PQ ($K=50$)[cite: 4, 5] & 4\,ms & 6.4\,GB ($10^8$ imgs)[cite: 5] \\
-Stage 1: Text Prototypes ($z_x^\top T$)[cite: 4] & 2\,ms & 77\,MB ($5\cdot 10^4$ cats) \\
-Stage 2: Metadata, Geo \& Event[cite: 3, 4] & 50\,ms & 0.4\,GB \\
-Stage 2: DAG Ancestor Pruning[cite: 3, 4] & 2\,ms & 350\,MB[cite: 3] \\
-Stage 3: Florence-2 VLM Verification[cite: 4, 5] & 45\,ms & 0.5\,GB \\
+SigLI ($z_x$) & 20\,ms & 1.2\,GB \\
+S1: Inst Retr & 4\,ms & 6.4\,GB ($10^8$ imgs) \\
+S1: Text Prototypes & 2\,ms & 77\,MB ($5\cdot 10^4$ cats) \\
+S2: Metadata & 50\,ms & 0.4\,GB \\
+S2: DAG Pruning & 2\,ms & 350\,MB \\
+S3: VLM Verification & 45\,ms & 0.5\,GB \\
 \midrule
-\textbf{Total End-to-End Pipeline} & \textbf{123\,ms} & \textbf{$\approx 8.5$\,GB} \\
+\textbf{End-to-End} & \textbf{123\,ms} & \textbf{$\approx 8.5$\,GB} \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\textbf{Execution Plan:}
-For Milestone 2 (4:00 AM), we deploy and benchmark Stage 1 retrieval alongside the DAG ancestor suppression algorithm on the temporal split to log baseline $P@k$ and $R@k$[cite: 1, 2, 4, 5]. The proactive event discovery and Stage 3 VLM reranker will be integrated for the final delivery (11:00 AM)[cite: 1, 2, 3, 4].
+% \textbf{Execution Plan:}
+% For Milestone 2 (4:00 AM), we deploy and benchmark Stage 1 retrieval alongside the DAG ancestor suppression algorithm on the temporal split to log baseline $P@k$ and $R@k$. The proactive event discovery and Stage 3 VLM reranker will be integrated for the final delivery (11:00 AM).
 
 \end{document}
 
