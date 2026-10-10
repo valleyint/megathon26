@@ -10,6 +10,22 @@ import numpy as np
 from src.encoders.base import BaseVisionEncoder, BaseTextEncoder
 
 
+def _extract_features(features):
+    """Safely extract feature tensor from ModelOutput or return tensor as is."""
+    import torch
+    if isinstance(features, torch.Tensor):
+        return features
+    if hasattr(features, "pooler_output") and features.pooler_output is not None:
+        return features.pooler_output
+    if hasattr(features, "text_embeds") and features.text_embeds is not None:
+        return features.text_embeds
+    if hasattr(features, "image_embeds") and features.image_embeds is not None:
+        return features.image_embeds
+    if hasattr(features, "last_hidden_state") and features.last_hidden_state is not None:
+        return features.last_hidden_state[:, 0]
+    return features[0]
+
+
 class SigLIPVisionEncoder(BaseVisionEncoder):
     """SigLIP Vision Encoder extracting normalized z_x representations."""
 
@@ -86,6 +102,7 @@ class SigLIPVisionEncoder(BaseVisionEncoder):
 
         with torch.no_grad():
             image_features = self.model.get_image_features(**inputs)
+            image_features = _extract_features(image_features)
             # L2 normalization
             image_features = image_features / image_features.norm(p=2, dim=-1, keepdim=True)
 
@@ -173,6 +190,7 @@ class SigLIPTextEncoder(BaseTextEncoder):
 
             with torch.no_grad():
                 text_features = self.model.get_text_features(**inputs)
+                text_features = _extract_features(text_features)
                 text_features = text_features / text_features.norm(p=2, dim=-1, keepdim=True)
             all_embeddings.append(text_features.cpu().to(torch.float32).numpy())
 
