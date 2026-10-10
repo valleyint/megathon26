@@ -19,8 +19,8 @@
 % Header: Team number without identifying personal/institution names[cite: 1]
 \twocolumn[
   \begin{center}
-    {\small \textbf{Team ID: [TEAM\_ID]} \hfill \textbf{Megathon X: Singularity --- Milestone 1 (M1)}} \\[4pt] %[cite: 1]
-    {\Large \textbf{Automatic Category Suggestion for Wikimedia Commons via Cascaded Dense Retrieval and Hierarchical Graph Verification}} \\[6pt] %[cite: 3, 4]
+    \small \textbf{Team ID: 23} \hfill \textbf{Megathon X: Singularity --- Milestone 1 (M1)} %[cite: 1]
+    \Large \textbf{Automatic Category Suggestion for Wikimedia Commons via Cascaded Dense Retrieval and Hierarchical Graph Verification} %[cite: 3, 4]
     \parbox{0.92\textwidth}{\small \textbf{Abstract}---Wikimedia Commons categorizes millions of uploads across an open-ended, heavy-tailed Directed Acyclic Graph (DAG) plagued by unlabelled ancestors, cyclic links, and missing labels[cite: 3]. We propose an end-to-end, sub-second cascaded retrieve-and-rerank architecture[cite: 4, 5]. Stage 1 generates high-recall visual candidates across millions of categories in $<30$\,ms using a frozen SigLIP backbone coupled with FAISS-based $k$-NN image retrieval, zero-shot text prototypes, and an Asymmetric Loss (ASL) linear head[cite: 4, 5]. Stage 2 proactively discovers events from wikitext and EXIF metadata, resolves temporal/spatial contradictions, and enforces Commons' ``most-specific'' cataloging rule via topological ancestor suppression[cite: 3, 4]. Stage 3 resolves fine-grained visual ambiguities using a single-turn, grammar-constrained Vision-Language Model (VLM) reranker that outputs calibrated predictions alongside human-auditable rationales[cite: 4, 5]. The entire pipeline operates in $<170$\,ms, scales via append-only vector updates without retraining, and evaluates on a temporally deduplicated split[cite: 3, 4, 5].}
   \end{center}
   \vspace{4pt}
