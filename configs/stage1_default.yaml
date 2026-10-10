@@ -1,0 +1,30 @@
+encoder:
+  model_name: "google/siglip-base-patch16-224"
+  torch_dtype: "float32"
+  prompt_template: "a Wikimedia Commons photograph categorized under {name}"
+  batch_size: 64
+
+scorers:
+  knn:
+    enabled: true
+    top_k_neighbors: 50
+    temperature: 0.07
+    candidate_top_k: 50
+    index_type: "IndexFlatIP"  # use IndexIVFPQ for millions of images
+  
+  prototype:
+    enabled: true
+    candidate_top_k: 50
+
+  supervised:
+    enabled: false
+    candidate_top_k: 50
+
+aggregator:
+  pool_size: 50
+
+paths:
+  vocab_path: "artifacts/category_vocab.json"
+  prototypes_path: "artifacts/prototypes.npy"
+  faiss_index_path: "artifacts/faiss_index.bin"
+  faiss_labels_path: "artifacts/faiss_labels.json"
