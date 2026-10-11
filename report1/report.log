@@ -1,9 +1,9 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.10.10)  10 OCT 2026 20:15
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (TeX Live 2026) (preloaded format=pdflatex 2026.10.10)  11 OCT 2026 03:47
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
-**report.tex
-(./report.tex
+**report1/report.tex
+(./report1/report.tex
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-03-20>
 (/usr/share/texlive/texmf-dist/tex/latex/base/article.cls
@@ -352,7 +352,7 @@ Package uniquecounter Info: New unique counter `rerunfilecheck' on input line 2
 File: l3backend-pdftex.def 2026-02-18 L3 backend support: PDF output (pdfTeX)
 \l__color_backend_stack_int=\count319
 )
-(./report.aux)
+(report1/report.aux)
 \openout1 = `report.aux'.
 
 LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 17.
@@ -382,15 +382,15 @@ LaTeX Font Info:    ... okay on input line 17.
 * layout: <same size as paper>
 * layoutoffset:(h,v)=(0.0pt,0.0pt)
 * modes: 
-* h-part:(L,W,R)=(39.74872pt, 518.01044pt, 39.74872pt)
-* v-part:(T,H,B)=(43.36243pt, 758.32199pt, 43.36243pt)
+* h-part:(L,W,R)=(37.5807pt, 522.34647pt, 37.5807pt)
+* v-part:(T,H,B)=(39.74872pt, 765.54941pt, 39.74872pt)
 * \paperwidth=597.50787pt
 * \paperheight=845.04684pt
-* \textwidth=518.01044pt
-* \textheight=758.32199pt
-* \oddsidemargin=-32.52127pt
-* \evensidemargin=-32.52127pt
-* \topmargin=-65.90756pt
+* \textwidth=522.34647pt
+* \textheight=765.54941pt
+* \oddsidemargin=-34.68929pt
+* \evensidemargin=-34.68929pt
+* \topmargin=-69.52127pt
 * \headheight=12.0pt
 * \headsep=25.0pt
 * \topskip=10.0pt
@@ -430,33 +430,13 @@ File: mt-cmr.cfg 2013/05/19 v2.2 microtype config. file: Computer Modern Roman
 (RS)
 )
 Package hyperref Info: Link coloring OFF on input line 17.
- (./report.out)
-(./report.out)
+
+(report1/report.out) (report1/report.out)
 \@outlinefile=\write3
 \openout3 = `report.out'.
 
+LaTeX Font Info:    Trying to load font information for U+msa on input line 29.
 
-! Argument of \@icentercr has an extra }.
-<inserted text> 
-                \par 
-l.22 ...Singularity --- Milestone 1 (M1)}} \\[4pt]
-                                                   %[cite: 1]
-? 
-Runaway argument?
-4pt\vskip -\dbltextfloatsep 
-! Paragraph ended before \@icentercr was complete.
-<to be read again> 
-                   \par 
-l.22 ...Singularity --- Milestone 1 (M1)}} \\[4pt]
-                                                   %[cite: 1]
-? 
-! Extra }, or forgotten \endgroup.
-<recently read> }
-                 
-l.22 ...Singularity --- Milestone 1 (M1)}} \\[4pt]
-                                                   %[cite: 1]
-? 
-LaTeX Font Info:    Trying to load font information for U+msa on input line 24.
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
@@ -464,7 +444,7 @@ File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 (/usr/share/texlive/texmf-dist/tex/latex/microtype/mt-msa.cfg
 File: mt-msa.cfg 2006/02/04 v1.1 microtype config. file: AMS symbols (a) (RS)
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 24.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 29.
 
 
 (/usr/share/texlive/texmf-dist/tex/latex/amsfonts/umsb.fd
@@ -473,140 +453,76 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 (/usr/share/texlive/texmf-dist/tex/latex/microtype/mt-msb.cfg
 File: mt-msb.cfg 2005/06/01 v1.0 microtype config. file: AMS symbols (b) (RS)
 )
-Overfull \hbox (222.56343pt too wide) in paragraph at lines 23--25
-[]$ 
+Underfull \hbox (badness 1331) in paragraph at lines 31--31
+|[]\OT1/cmr/bx/n/14.4 (+20) Problem State-ment & Un-der-
  []
 
 
-! LaTeX Error: \begin{document} ended by \end{center}.
+Underfull \vbox (badness 3364) has occurred while \output is active []
 
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.25   \end{center}
-                   
-? 
 
-Underfull \hbox (badness 1389) in paragraph at lines 67--67
-[]|$ \OMS/cmsy/m/n/9 ^^O$ \OT1/cmr/m/n/9 (+20) Scorer 2: Zero-shot text-prototy
-pe co-sine match
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+ [1{/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}
+
+
+{/usr/share/texlive/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}]
+Underfull \hbox (badness 10000) in alignment at lines 112--112
+[][][][][] 
  []
 
-
-Overfull \hbox (14.60204pt too wide) detected at line 80
-\OMS/cmsy/m/n/10 L \OT1/cmr/m/n/10 = \OMS/cmsy/m/n/10 ^^@ [] []
- []
-
-
-Underfull \hbox (badness 1264) in paragraph at lines 91--92
-\OT1/cmr/m/n/10 (+20) ces-tor cat-e-gory $\OML/cmm/m/it/10 c$ \OT1/cmr/m/n/10 (
-+20) is sup-pressed if any de-scen-dant
- []
-
-
-Overfull \hbox (22.63882pt too wide) detected at line 111
-\OML/cmm/m/it/10 P\OT1/cmr/m/n/10 @\OML/cmm/m/it/10 k \OT1/cmr/m/n/10 = []\OML/
-cmm/m/it/10 ;  R\OT1/cmr/m/n/10 @\OML/cmm/m/it/10 k \OT1/cmr/m/n/10 = []\OML/cm
-m/m/it/10 ;  F\OT1/cmr/m/n/10 1@\OML/cmm/m/it/10 k \OT1/cmr/m/n/10 = []
- []
-
-
-Underfull \hbox (badness 10000) in paragraph at lines 111--113
-\OT1/cmr/m/n/10 (+20) hierarchy-aware pre-ci-sion where pre-dicted an-ces-
- []
-
-
-Underfull \hbox (badness 4673) in paragraph at lines 111--113
-\OT1/cmr/m/n/10 (+20) tors/descendants re-ceive par-tial credit[cite: 3, 5].
- []
-
-
-Overfull \hbox (142.9957pt too wide) in paragraph at lines 124--138
- [] 
- []
-
-(./report.aux)
+[2] (report1/report.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-03-20>
  ***********
-Package rerunfilecheck Info: File `report.out' has not changed.
-(rerunfilecheck)             Checksum: D41D8CD98F00B204E9800998ECF8427E;0.
 
-! You can't use `\end' in internal vertical mode.
-\enddocument ...cument/end}\deadcycles \z@ \@@end 
-                                                  
-l.143 \end{document}
-                    
-? 
-! Missing } inserted.
-<inserted text> 
-                }
-l.143 \end{document}
-                    
-? 
-! Extra \endgroup.
-<recently read> \endgroup 
-                          
-l.143 \end{document}
-                    
-? 
-)
-*
-(Please type a command or say `\end')
-*
-(Please type a command or say `\end')
-*
-(Please type a command or say `\end')
-*
-(Please type a command or say `\end')
-*
-(Please type a command or say `\end')
-*
-(Please type a command or say `\end')
-*\end
 
-*\end
-! Missing \endcsname inserted.
-<to be read again> 
-                   \end/ 
-<*> \end
-        
-? 
-! Missing \endcsname inserted.
-<to be read again> 
-                   \end/ 
-<*> \end
-        
-? 
-! Use of \@topnewpage doesn't match its definition.
-\@checkend #1->\def \reserved@a {
-                                 #1}\ifx \reserved@a \@currenvir \else \@bad...
-<*> \end
-        
-? 
-! Missing \endcsname inserted.
-<to be read again> 
-                   \end/ 
-<*> \end
-        
-? 
-! TeX capacity exceeded, sorry [input stack size=10000].
-<inserted text> 
-                \relax
-<*> \end
-        
-If you really absolutely need more capacity,
-you can ask a wizard to enlarge me.
+Package rerunfilecheck Warning: File `report.out' has changed.
+(rerunfilecheck)                Rerun to get outlines right
+(rerunfilecheck)                or use package `bookmark'.
 
- 
+Package rerunfilecheck Info: Checksums for `report.out':
+(rerunfilecheck)             Before: 3EF64347D2576E9F4D04334BA0E6C924;2300
+(rerunfilecheck)             After:  A77E23C4C9583D3891604836924713B4;2161.
+ ) 
 Here is how much of TeX's memory you used:
- 12235 strings out of 469296
- 189222 string characters out of 5465560
- 664907 words of memory out of 6000000
- 40833 multiletter control sequences out of 15000+600000
- 638037 words of font info for 130 fonts, out of 8000000 for 9000
+ 12317 strings out of 469296
+ 190332 string characters out of 5465560
+ 678750 words of memory out of 6000000
+ 40871 multiletter control sequences out of 15000+600000
+ 642476 words of font info for 152 fonts, out of 8000000 for 9000
  36 hyphenation exceptions out of 8191
- 10000i,15n,10002p,1292b,564s stack positions out of 10000i,1000n,20000p,200000b,200000s
-!  ==> Fatal error occurred, no output PDF file produced!
+ 75i,14n,79p,1209b,453s stack positions out of 10000i,1000n,20000p,200000b,200000s
+
+pdfTeX warning (dest): name{subsection.3.3} has been referenced but does not ex
+ist, replaced by a fixed one
+
+</usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb></usr/
+share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/share/
+texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx8.pfb></usr/share/texlive
+/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx9.pfb></usr/share/texlive/texmf-
+dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/texlive/texmf-dist/f
+onts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texlive/texmf-dist/fonts/t
+ype1/public/amsfonts/cm/cmmi5.pfb></usr/share/texlive/texmf-dist/fonts/type1/pu
+blic/amsfonts/cm/cmmi6.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/am
+sfonts/cm/cmmi7.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/
+cm/cmmi8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi
+9.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb><
+/usr/share/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/sha
+re/texlive/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/share/texli
+ve/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/share/texlive/texmf
+-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb></usr/share/texlive/texmf-dist/fo
+nts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texlive/texmf-dist/fonts/ty
+pe1/public/amsfonts/cm/cmsy7.pfb></usr/share/texlive/texmf-dist/fonts/type1/pub
+lic/amsfonts/cm/cmsy8.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/ams
+fonts/symbols/msam10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/amsf
+onts/symbols/msbm10.pfb></usr/share/texlive/texmf-dist/fonts/type1/public/cm-su
+per/sfrm1000.pfb>
+Output written on report1/report.pdf (2 pages, 290791 bytes).
+PDF statistics:
+ 175 PDF objects out of 1000 (max. 8388607)
+ 125 compressed objects within 2 object streams
+ 18 named destinations out of 1000 (max. 500000)
+ 34889 words of extra memory for PDF output out of 35830 (max. 10000000)
+

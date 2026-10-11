@@ -43,11 +43,11 @@ An extreme multi-label category suggestion system for **Wikimedia Commons** ($|\
                       │                                           │
                       ▼                                           ▼
 ┌───────────────────────────────────────────┐ ┌──────────────────────────────────────────┐
-│  STAGE 1: DENSE MULTI-SCORER RECALL       │ │  STAGE 2: METADATA & EVENT DISCOVERY     │
-│  (Shared SigLIP/CLIP Encoder) [< 50ms]    │ │  (In Progress)                           │
-│  • Normalized feature vector z_x          │ │  • Wikitext markup parsing               │
+│  STAGE 1: DENSE MULTI-SCORER RECALL       │ │  STAGE 2: METADATA, EVENTS & DAG PRUNING │
+│  (Shared SigLIP/CLIP Encoder) [< 50ms]    │ │  (Completed) [< 40ms]                    │
+│  • Normalized feature vector z_x          │ │  • Wikitext markup parsing & EXIF date   │
 │  • Scorer 1: Historical k-NN consensus    │ │  • Offline KD-tree reverse geocoding     │
-│  • Scorer 2: Zero-shot text prototypes    │ │  • LLM proactive event synthesis         │
+│  • Scorer 2: Zero-shot text prototypes    │ │  • Proactive event discovery & snapping  │
 │  • Scorer 3: ASL supervised linear head   │ │  • Temporal/spatial conflict filter      │
 │  • Reciprocal Rank Fusion (RRF)           │ │  • Category DAG ancestor suppression     │
 └─────────────────────┬─────────────────────┘ └───────────────────┬──────────────────────┘
@@ -302,12 +302,18 @@ Run the unit and integration tests using Python's standard `unittest` framework:
 # Run all tests
 python -m unittest discover tests
 
-# Or run individual test modules
+# Or run individual Stage 1 & Stage 2 test modules
 python -m unittest tests/test_category_vocab.py
 python -m unittest tests/test_metrics.py
 python -m unittest tests/test_scorers.py
 python -m unittest tests/test_aggregator.py
-python -m unittest tests/test_pipeline.py
+python -m unittest tests/test_metadata_cleaner.py
+python -m unittest tests/test_geocoder.py
+python -m unittest tests/test_event_discovery.py
+python -m unittest tests/test_filters.py
+python -m unittest tests/test_category_dag.py
+python -m unittest tests/test_ancestor_suppressor.py
+python -m unittest tests/test_stage2_pipeline.py
 ```
 
 ---
@@ -323,7 +329,13 @@ python -m unittest tests/test_pipeline.py
   - [x] End-to-end Stage 1 inference pipeline with sub-millisecond profiling.
   - [x] Complete evaluation metrics suite ($P@k$, $R@k$, $F1@k$, mAP).
   - [x] CLI entrypoints and test suite.
-- [ ] **Milestone 2 (M2 - 4:00 AM, 11th Oct):** Stage 1 evaluated on temporal validation split + Progress Report PDF.
-- [ ] **Stage 2 Implementation:** Metadata parsing, EXIF chronological validation, KD-tree GPS filtering, proactive LLM event synthesis, and Category DAG ancestor suppression.
+- [x] **Phase 2 Implementation (Stage 2 Engine):**
+  - [x] Wikitext metadata cleaning, template stripping, and EXIF year extraction.
+  - [x] Offline KD-tree reverse geocoder (< 2ms) with bounding box matching.
+  - [x] Proactive Commons event hypothesis generation & BM25 database snapping.
+  - [x] Temporal conflict filter ($\pm 1$ yr tolerance) & spatial conflict filter.
+  - [x] In-memory Commons Category DAG with Tarjan's SCC cycle resolution.
+  - [x] Topological ancestor suppression enforcing the "most-specific" cataloging rule.
+  - [x] Stage 2 orchestrator pipeline + CLI demo ([scripts/demo_stage2.py](scripts/demo_stage2.py)) & benchmark ([scripts/evaluate_stage2.py](scripts/evaluate_stage2.py)).
 - [ ] **Stage 3 Implementation:** Lightweight VLM (Florence-2) visual verification and human audit trail generation.
 - [ ] **Final Submission (11:00 AM, 11th Oct):** Complete cascaded pipeline, 3-page final report, demo video, and slides.

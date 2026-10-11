@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CommonsCat AI Studio · Stage 1 & Stage 2 Retrieval & Pruning</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10" stroke="#006699" stroke-width="2.5"/>
+            <path d="M12 6v6l4 2" stroke="#339966" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M7 16l2-2m6 0l2 2" stroke="#ee3322" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <div class="brand-title">
+            <span class="gradient-text">CommonsCat</span> AI Studio
+            <span class="version-tag">Stage 1 & 2</span>
+          </div>
+          <div class="brand-subtitle">Extreme Multi-Label Retrieval & DAG Pruning for Wikimedia Commons</div>
+        </div>
+      </div>
+
+      <div class="header-stats">
+        <div class="stat-pill" id="budgetGauge">
+          <span class="stat-dot green"></span>
+          <span class="stat-label">Budget:</span>
+          <span class="stat-value" id="headerLatencyVal">&lt; 35 ms / 200 ms</span>
+        </div>
+        <button id="themeToggle" class="icon-btn" title="Toggle Light/Dark Theme">
+          <svg id="moonIcon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+          <svg id="sunIcon" class="hidden" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Presets Carousel Bar -->
+  <section class="presets-section">
+    <div class="section-label">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      <span>Interactive Presets & Edge Cases:</span>
+    </div>
+    <div class="presets-scroll" id="presetsContainer">
+      <!-- Preset cards populated dynamically -->
+    </div>
+  </section>
+
+  <!-- Main Application Grid -->
+  <main class="main-layout">
+    <!-- LEFT COLUMN: Query Inputs & Hyperparameter Controls -->
+    <aside class="sidebar-panel">
+      <!-- Image Query Card -->
+      <div class="panel-card image-card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Query Image
+          </div>
+          <span class="badge blue" id="queryIdBadge">query_demo_01</span>
+        </div>
+        <div class="image-preview-wrapper" id="imagePreviewContainer">
+          <div id="imageDisplay" class="image-display">
+            <!-- SVG or image goes here -->
+          </div>
+          <div class="image-overlay-controls">
+            <label for="imageUploadInput" class="btn btn-xs btn-glass" title="Upload Custom Photo">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload Photo
+            </label>
+            <input type="file" id="imageUploadInput" accept="image/*" class="hidden">
+          </div>
+        </div>
+      </div>
+
+      <!-- Metadata & Geolocation Card -->
+      <div class="panel-card metadata-card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            Wikitext & Metadata
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="titleInput">File Title (Commons Wikitext)</label>
+          <input type="text" id="titleInput" class="input-text" placeholder="File:Example_title_of_monument.jpg">
+        </div>
+
+        <div class="form-group">
+          <label for="descInput">Wikitext Description Template</label>
+          <textarea id="descInput" class="input-textarea" rows="3" placeholder="{{Information|description=Protests and demonstrations in Paris...}}"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="timestampInput">EXIF Timestamp</label>
+            <input type="text" id="timestampInput" class="input-text" placeholder="2023:05:14 21:30:00">
+          </div>
+          <div class="form-group year-extracted">
+            <label>Year</label>
+            <div id="yearPill" class="badge-pill">2023</div>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group flex-1">
+            <label for="latInput">GPS Latitude</label>
+            <input type="number" step="0.0001" id="latInput" class="input-text" placeholder="48.8584">
+          </div>
+          <div class="form-group flex-1">
+            <label for="lonInput">GPS Longitude</label>
+            <input type="number" step="0.0001" id="lonInput" class="input-text" placeholder="2.2945">
+          </div>
+        </div>
+
+        <!-- Geocoded Location Preview -->
+        <div class="geocoded-preview" id="geoPreview">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          <span id="geoCityText">Paris, Île-de-France, France (FR)</span>
+        </div>
+      </div>
+
+      <!-- Pipeline Hyperparameters (Collapsible) -->
+      <details class="panel-card params-card" id="paramsDetails">
+        <summary class="params-summary">
+          <div class="card-title">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Pipeline Hyperparameters
+          </div>
+          <span class="chevron">▼</span>
+        </summary>
+        <div class="params-content">
+          <div class="param-group-title">Stage 1: Multi-Scorer Dense Recall</div>
+          <div class="slider-row">
+            <label>k-NN Weight (w<sub>knn</sub>): <span id="knnWeightVal">0.50</span></label>
+            <input type="range" id="knnWeightInput" min="0.1" max="1.0" step="0.05" value="0.50">
+          </div>
+          <div class="slider-row">
+            <label>Prototype Weight (w<sub>proto</sub>): <span id="protoWeightVal">0.50</span></label>
+            <input type="range" id="protoWeightInput" min="0.1" max="1.0" step="0.05" value="0.50">
+          </div>
+          <div class="slider-row">
+            <label>Candidate Pool Size: <span id="poolSizeVal">50</span></label>
+            <input type="range" id="poolSizeInput" min="10" max="100" step="5" value="50">
+          </div>
+
+          <div class="param-group-title mt-3">Stage 2: Metadata, Events & DAG Pruning</div>
+          <div class="slider-row">
+            <label>Year Tolerance (Δy): <span id="yearTolVal">1 yr</span></label>
+            <input type="range" id="yearTolInput" min="0" max="5" step="1" value="1">
+          </div>
+          <div class="slider-row">
+            <label>DAG Child Confidence (θ<sub>child</sub>): <span id="childThreshVal">0.35</span></label>
+            <input type="range" id="childThreshInput" min="0.1" max="0.9" step="0.05" value="0.35">
+          </div>
+          <div class="switch-row">
+            <label for="strictCountryInput">Strict Country Conflict Check</label>
+            <input type="checkbox" id="strictCountryInput" checked>
+          </div>
+        </div>
+      </details>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons-group">
+        <button id="runPipelineBtn" class="btn btn-primary btn-block">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Run End-to-End Pipeline
+        </button>
+        <div class="btn-split">
+          <button id="runStage1Btn" class="btn btn-secondary flex-1" title="Execute Stage 1 visual retrieval only">
+            ⚡ Stage 1 Recall
+          </button>
+          <button id="runStage2Btn" class="btn btn-secondary flex-1" title="Execute Stage 2 metadata & DAG pruning">
+            ⚙️ Stage 2 Pruning
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- RIGHT COLUMN: Pipeline Execution & Visual Analysis -->
+    <main class="content-panel">
+      <!-- Pipeline KPI Metrics Bar -->
+      <div class="kpi-banner">
+        <div class="kpi-card">
+          <div class="kpi-label">TOTAL LATENCY</div>
+          <div class="kpi-value text-emerald" id="kpiLatency">-- ms</div>
+          <div class="kpi-subtext" id="kpiBudgetSub">Budget: &lt; 200 ms</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">STAGE 1 RECALL</div>
+          <div class="kpi-value text-blue" id="kpiS1Count">--</div>
+          <div class="kpi-subtext">Visual Candidates</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">STAGE 2 RETAINED</div>
+          <div class="kpi-value text-purple" id="kpiS2Count">--</div>
+          <div class="kpi-subtext">Grounded Categories</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">PRUNED / SUPPRESSED</div>
+          <div class="kpi-value text-amber" id="kpiPrunedCount">--</div>
+          <div class="kpi-subtext">Audited Noise</div>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="tabs-nav">
+        <button class="tab-btn active" data-tab="tabOverview">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Final Grounded Suggestions
+        </button>
+        <button class="tab-btn" data-tab="tabStage1">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8"/><path d="M12 8v8"/></svg>
+          Stage 1: Multi-Scorer Recall
+        </button>
+        <button class="tab-btn" data-tab="tabStage2">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Stage 2: Pruning Audit Trail
+        </button>
+        <button class="tab-btn" data-tab="tabDag">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><line x1="10" y1="6.5" x2="14" y2="6.5"/><line x1="6.5" y1="10" x2="6.5" y2="14"/><line x1="17.5" y1="10" x2="17.5" y2="14"/></svg>
+          Category DAG Hierarchy
+        </button>
+        <button class="tab-btn" data-tab="tabLatency">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          Latency Waterfall (< 200ms)
+        </button>
+      </div>
+
+      <!-- TAB 1: FINAL GROUNDED SUGGESTIONS -->
+      <section id="tabOverview" class="tab-pane active">
+        <div class="panel-card">
+          <div class="card-header">
+            <div class="card-title">
+              <span>Retained Wikimedia Commons Categories</span>
+              <span class="badge emerald" id="retainedBadge">0 categories</span>
+            </div>
+            <div class="header-actions">
+              <button id="copyAllTagsBtn" class="btn btn-sm btn-outline">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy Wikitext Tags
+              </button>
+              <button id="exportJsonBtn" class="btn btn-sm btn-outline">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export JSON
+              </button>
+            </div>
+          </div>
+
+          <!-- Metadata Context Header -->
+          <div class="parsed-signals-bar" id="parsedSignalsBar">
+            <div class="signal-item">
+              <span class="signal-title">Resolved Geotag:</span>
+              <span class="signal-val" id="signalGeo">Paris, France</span>
+            </div>
+            <div class="signal-item">
+              <span class="signal-title">Capture Year:</span>
+              <span class="signal-val" id="signalYear">2023</span>
+            </div>
+            <div class="signal-item">
+              <span class="signal-title">Event Matches:</span>
+              <span class="signal-val" id="signalEvents">Protests in Paris</span>
+            </div>
+          </div>
+
+          <!-- Suggestions List -->
+          <div class="suggestions-list" id="finalSuggestionsList">
+            <div class="empty-state">
+              <p>Click <strong>"Run End-to-End Pipeline"</strong> to process query image and metadata through Stage 1 & Stage 2.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: STAGE 1 VISUAL RECALL -->
+      <section id="tabStage1" class="tab-pane">
+        <div class="panel-card">
+          <div class="card-header">
+            <div class="card-title">
+              Stage 1: Dense Multi-Scorer Retrieval Pool
+              <span class="badge blue" id="s1PoolBadge">Visual Recall</span>
+            </div>
+            <div class="stat-pill">
+              <span class="stat-label">Stage 1 Latency:</span>
+              <span class="stat-value text-blue" id="s1LatencyVal">-- ms</span>
+            </div>
+          </div>
+
+          <p class="section-desc">
+            Shared SigLIP vision backbone extracts unit vector \(z_x\). Queries historical \(k\)-NN consensus voting and zero-shot text prototypes in parallel, fused via Reciprocal Rank Fusion (RRF).
+          </p>
+
+          <!-- Stage 1 Latency Breakdown Bars -->
+          <div class="micro-latency-grid" id="s1MicroLatencyGrid">
+            <div class="latency-step">
+              <span class="step-name">Vision Encoding (SigLIP)</span>
+              <span class="step-time" id="s1LatVision">18.40 ms</span>
+            </div>
+            <div class="latency-step">
+              <span class="step-name">k-NN Consensus</span>
+              <span class="step-time" id="s1LatKnn">3.85 ms</span>
+            </div>
+            <div class="latency-step">
+              <span class="step-name">Zero-Shot Prototypes</span>
+              <span class="step-time" id="s1LatProto">1.75 ms</span>
+            </div>
+            <div class="latency-step">
+              <span class="step-name">RRF Aggregation</span>
+              <span class="step-time" id="s1LatAgg">0.50 ms</span>
+            </div>
+          </div>
+
+          <!-- Candidates List -->
+          <div class="candidate-cards-list" id="s1CandidatesList">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: STAGE 2 PRUNING AUDIT TRAIL -->
+      <section id="tabStage2" class="tab-pane">
+        <div class="panel-card">
+          <div class="card-header">
+            <div class="card-title">
+              Stage 2: Pruning Audit Trail & Decisions
+              <span class="badge purple" id="auditDecisionsBadge">Audit Log</span>
+            </div>
+            <!-- Audit Filters -->
+            <div class="audit-filter-pills">
+              <button class="filter-pill active" data-filter="all">All</button>
+              <button class="filter-pill" data-filter="retained">Retained</button>
+              <button class="filter-pill" data-filter="suppressed_ancestor">Suppressed Ancestor</button>
+              <button class="filter-pill" data-filter="temporal_conflict">Temporal Conflict</button>
+              <button class="filter-pill" data-filter="spatial_conflict">Spatial Conflict</button>
+            </div>
+          </div>
+
+          <p class="section-desc">
+            Auditable log of spatial/temporal conflict filters and Category DAG subsumption rules. Ancestors are suppressed when a specific leaf is grounded with high confidence (\(\ge \theta_{\text{child}}\)).
+          </p>
+
+          <div class="audit-list" id="auditDecisionsList">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: CATEGORY DAG HIERARCHY TREE -->
+      <section id="tabDag" class="tab-pane">
+        <div class="panel-card">
+          <div class="card-header">
+            <div class="card-title">
+              Wikimedia Commons Category DAG Hierarchy
+            </div>
+            <div class="dag-legend">
+              <span class="legend-item"><span class="legend-dot green"></span> Retained Leaf</span>
+              <span class="legend-item"><span class="legend-dot purple"></span> Suppressed Ancestor</span>
+              <span class="legend-item"><span class="legend-dot red"></span> Conflict Filtered</span>
+              <span class="legend-item"><span class="legend-dot gray"></span> DAG Context</span>
+            </div>
+          </div>
+
+          <p class="section-desc">
+            Directed Acyclic Graph (DAG) visualizing taxonomic relationships. Edges represent Commons parent-to-child category links.
+          </p>
+
+          <div class="dag-graph-wrapper" id="dagGraphWrapper">
+            <svg id="dagSvg" class="dag-svg" viewBox="0 0 900 480" width="100%" height="480"></svg>
+          </div>
+
+          <div class="dag-node-inspector" id="dagInspector">
+            <div class="inspector-title" id="inspectorTitle">Select a node in the DAG to inspect details</div>
+            <div class="inspector-details" id="inspectorDetails"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: LATENCY WATERFALL PROFILE -->
+      <section id="tabLatency" class="tab-pane">
+        <div class="panel-card">
+          <div class="card-header">
+            <div class="card-title">
+              Sub-200ms Pipeline Latency Profile
+              <span class="badge emerald" id="latencyComplianceBadge">Compliant</span>
+            </div>
+            <div class="stat-pill">
+              <span class="stat-label">Total Execution:</span>
+              <span class="stat-value text-emerald" id="waterfallTotalMs">-- ms</span>
+            </div>
+          </div>
+
+          <p class="section-desc">
+            Strict Wikimedia Commons sub-200ms latency budget audit. Sub-stages execute via asynchronous zero-copy embeddings, precomputed KD-trees, and bitset DAG traversal.
+          </p>
+
+          <!-- Waterfall Visualizer -->
+          <div class="waterfall-container">
+            <div class="budget-bar-wrapper">
+              <div class="budget-label">
+                <span>Wikimedia Commons Latency Budget (200.0 ms)</span>
+                <span id="headroomText">168.0 ms Headroom (84.0%)</span>
+              </div>
+              <div class="budget-bar-track">
+                <div class="budget-bar-fill" id="waterfallBudgetFill" style="width: 16%;"></div>
+                <div class="budget-limit-marker" style="left: 100%;">
+                  <span>200ms limit</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="waterfall-steps-list" id="waterfallStepsList">
+              <!-- Steps populated dynamically -->
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </main>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast hidden">Copied to clipboard!</div>
+
+  <script src="app.js"></script>
+</body>
+</html>

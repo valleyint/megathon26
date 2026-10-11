@@ -1,0 +1,35 @@
+metadata:
+  clean_wikitext: true
+  extract_year: true
+  geocoding_enabled: true
+  geocoder_max_distance_km: 150.0
+
+event_discovery:
+  enabled: true
+  max_event_candidates: 20
+  bm25_weight: 0.5
+  prototype_weight: 0.5
+  min_match_score: 0.25
+
+filters:
+  temporal:
+    enabled: true
+    year_tolerance: 1
+  spatial:
+    enabled: true
+    strict_country_check: true
+
+dag_pruning:
+  enabled: true
+  child_confidence_threshold: 0.35
+  max_ancestor_depth: 10
+
+stage2:
+  target_pool_size: 15
+  min_pool_size: 5
+
+paths:
+  vocab_path: "artifacts/category_vocab.json"
+  category_dag_path: "artifacts/category_dag.json"
+  event_index_path: "artifacts/event_index.json"
+  geodb_path: "artifacts/geodb.json"

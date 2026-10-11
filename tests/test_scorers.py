@@ -19,6 +19,7 @@ from src.stage1.scorers.prototype_scorer import PrototypeScorer
 from src.stage1.scorers.knn_scorer import KNNScorer
 
 
+@unittest.skipIf(np is None, "numpy not installed in current environment")
 class TestScorers(unittest.TestCase):
     def setUp(self):
         self.vocab = CategoryVocabulary()

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 from typing import List, Optional, Union
-from pathlib import Path
-import numpy as np
+try:
+    import numpy as np
+except ImportError:
+    np = None
 
 from src.stage1.scorers.base import BaseScorer
 from src.common.types import ScoredCandidate

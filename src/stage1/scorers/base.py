@@ -1,8 +1,10 @@
 """Base class for Stage 1 candidate scorers."""
 
 from abc import ABC, abstractmethod
-from typing import List, Any
-import numpy as np
+try:
+    import numpy as np
+except ImportError:
+    np = None
 from src.common.types import ScoredCandidate
 
 

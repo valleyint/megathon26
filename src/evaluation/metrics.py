@@ -1,7 +1,7 @@
 """Evaluation metrics for extreme multi-label category suggestion."""
 
 from __future__ import annotations
-from typing import List, Set, Dict, Sequence
+from typing import List, Set, Dict, Sequence, Optional
 try:
     import numpy as np
 except ImportError:

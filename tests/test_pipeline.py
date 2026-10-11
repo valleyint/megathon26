@@ -22,6 +22,7 @@ from src.stage1.aggregator import Stage1Aggregator
 from src.stage1.pipeline import Stage1Pipeline
 
 
+@unittest.skipIf(np is None, "numpy not installed in current environment")
 class TestStage1Pipeline(unittest.TestCase):
     def setUp(self):
         self.vocab = CategoryVocabulary()

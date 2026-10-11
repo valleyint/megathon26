@@ -2,8 +2,14 @@
 
 from __future__ import annotations
 from typing import Dict, Any, Optional, Union
-from PIL import Image
-import numpy as np
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
+try:
+    import numpy as np
+except ImportError:
+    np = None
 
 from src.encoders.base import BaseVisionEncoder
 from src.stage1.scorers.base import BaseScorer

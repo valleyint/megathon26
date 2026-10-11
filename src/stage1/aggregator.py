@@ -1,8 +1,11 @@
 """Candidate Aggregation and Fusion for Stage 1."""
 
 from __future__ import annotations
-from typing import List, Dict, Optional
-import numpy as np
+from typing import List, Dict, Optional, Any
+try:
+    import numpy as np
+except ImportError:
+    np = None
 
 from src.common.types import ScoredCandidate, Stage1CandidatePool
 

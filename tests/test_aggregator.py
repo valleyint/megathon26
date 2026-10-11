@@ -32,7 +32,7 @@ class TestAggregator(unittest.TestCase):
             ScoredCandidate(category_id=4, name="Category:D", score=0.4, source="prototype"),
         ]
 
-        dummy_emb = np.array([1.0, 0.0], dtype=np.float32)
+        dummy_emb = np.array([1.0, 0.0], dtype=np.float32) if np is not None else [1.0, 0.0]
         pool = aggregator.aggregate(
             query_id="q1",
             embedding=dummy_emb,

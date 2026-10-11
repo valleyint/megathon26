@@ -1,9 +1,16 @@
-"""Abstract interfaces for multimodal encoders."""
-
+from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import List, Union
-from PIL import Image
-import numpy as np
+from typing import List, Union, Any
+
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
+
+try:
+    import numpy as np
+except ImportError:
+    np = None
 
 
 class BaseVisionEncoder(ABC):
